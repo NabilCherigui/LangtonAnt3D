@@ -1,6 +1,5 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using UnityEngine;
 
 public class Ant : MonoBehaviour
@@ -16,66 +15,114 @@ public class Ant : MonoBehaviour
         RED
     }
 
-    private Colors[] _colors = new []{Colors.YELLOW, Colors.GREEN, Colors.YELLOW, Colors.GREEN, Colors.RED, Colors.BLUE,Colors.RED, Colors.BLUE,Colors.RED, Colors.BLUE,Colors.RED, Colors.BLUE};
+    private Colors[] _colors = new []{Colors.GREEN, Colors.RED};
     private int _nextColor = 0;
+    private GameObject _blockParent;
+
+    private int _steps = 0;
+    [SerializeField]
+    private UnityEngine.UI.Text _counter;
+    
+    [SerializeField]
+    private int _stepsPerFrame = 100;
 
     private Dictionary<Vector3, Colors> _blocks = new Dictionary<Vector3, Colors>();
-    
+    private Dictionary<Vector3, GameObject> _realBlocks = new Dictionary<Vector3, GameObject>();
+
+    private void Start()
+    {
+        _counter.text = _steps + " steps taken.";
+        _blockParent = new GameObject("Parent");
+        _blockParent.transform.position = Vector3.zero;
+    }
+
     private void Update()
     {
         if (_nextTime < Time.time)
         {
-            if (_blocks.ContainsKey(transform.position))
+            for (var i = 0; i < _stepsPerFrame; i++)
             {
-                var color = _blocks[transform.position];
-                switch (color)
+                if (_blocks.ContainsKey(RoundVector(transform.position)))
                 {
-                    case Colors.YELLOW:
-                        transform.rotation = Quaternion.Euler(transform.eulerAngles.x + 90, transform.eulerAngles.y,
-                            transform.eulerAngles.z);
-                        color = Colors.GREEN;
+                    var color = _blocks[RoundVector(transform.position)];
+                    var block = _realBlocks[RoundVector(transform.position)];
+                    switch (color)
+                    {
+                        case Colors.YELLOW:
+                            transform.Rotate(90f, 0f, 0f);
+                            color = Colors.GREEN;
+                            block.GetComponent<Renderer>().material.color = Color.green;
+                            break;
+                        case Colors.GREEN:
+                            transform.Rotate(-90f, 0f, 0f);
+                            color = Colors.YELLOW;
+                            block.GetComponent<Renderer>().material.color = Color.yellow;
+                            break;
+                        case Colors.BLUE:
+                            transform.Rotate(0f, 90f, 0f);
+                            color = Colors.RED;
+                            block.GetComponent<Renderer>().material.color = Color.red;
+                            break;
+                        default:
+                            transform.Rotate(0f, -90f, 0f);
+                            color = Colors.BLUE;
+                            block.GetComponent<Renderer>().material.color = Color.blue;
+                            break;
+                    }
 
-                        break;
-                    case Colors.GREEN:
-                        transform.rotation = Quaternion.Euler(transform.eulerAngles.x - 90, transform.eulerAngles.y,
-                            transform.eulerAngles.z);
-                        color = Colors.YELLOW;
-                        break;
-                    case Colors.BLUE:
-                        transform.rotation = Quaternion.Euler(transform.eulerAngles.x, transform.eulerAngles.y + 90,
-                            transform.eulerAngles.z);
-                        color = Colors.RED;
-                        break;
-                    default:
-                        transform.rotation = Quaternion.Euler(transform.eulerAngles.x, transform.eulerAngles.y - 90,
-                            transform.eulerAngles.z);
-                        color = Colors.BLUE;
-                        break;
+                    _blocks[RoundVector(transform.position)] = color;
                 }
-                _blocks[transform.position] = color;
-                transform.Translate(Vector3.forward);
-                _nextTime = Time.time + 1f;
-            }
-            else
-            {
-                var color = _colors[_nextColor];
-                _blocks.Add(transform.position,color);
-                _nextColor += 1;
-                if (_nextColor == _colors.Length)
+                else
                 {
-                    _nextColor = 0;
+                    var color = _colors[_nextColor];
+                    _blocks.Add(RoundVector(transform.position), color);
+                    _nextColor += 1;
+                    if (_nextColor == _colors.Length)
+                    {
+                        _nextColor = 0;
+                    }
+
+                    var block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+                    switch (color)
+                    {
+                        case Colors.YELLOW:
+                            transform.Rotate(90f, 0f, 0f);
+                            block.GetComponent<Renderer>().material.color = Color.yellow;
+                            break;
+                        case Colors.GREEN:
+                            transform.Rotate(-90f, 0f, 0f);
+                            block.GetComponent<Renderer>().material.color = Color.green;
+                            break;
+                        case Colors.BLUE:
+                            transform.Rotate(0f, 90f, 0f);
+                            block.GetComponent<Renderer>().material.color = Color.blue;
+                            break;
+                        default:
+                            transform.Rotate(0f, -90f, 0f);
+                            block.GetComponent<Renderer>().material.color = Color.red;
+                            break;
+                    }
+
+                    _realBlocks.Add(RoundVector(transform.position), block);
+                    block.transform.position = RoundVector(transform.position);
+                    block.transform.SetParent(_blockParent.transform);
                 }
+
+                transform.Translate(Vector3.forward);
+                _nextTime = Time.time + .1f;
+                _steps++;
+                _counter.text = _steps + " steps taken.";
             }
         }
     }
 
-
-    void Next()
+    private Vector3 RoundVector(Vector3 vector)
     {
-        transform.position = new Vector3(transform.position.x + 1,transform.position.y,transform.position.z);
+        return new Vector3(Mathf.RoundToInt(vector.x), Mathf.RoundToInt(vector.y), Mathf.RoundToInt(vector.z));
     }
 
-    private void OnDrawGizmos()
+    /*private void OnDrawGizmos()
     {
         foreach (var key in _blocks.Keys)
         {
@@ -97,5 +144,5 @@ public class Ant : MonoBehaviour
             }
             Gizmos.DrawCube(key, Vector3.one);
         }
-    }
+    }*/
 }
